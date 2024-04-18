@@ -15,7 +15,7 @@ func New(input string) *Lexer {
 	return lexer
 }
 
-// Give the next character and advance the position in the input string
+// Set the next character and advance the position in the input string
 func (lexer *Lexer) readChar() {
 	if lexer.readPosition >= len(lexer.input) {
 		lexer.ch = 0 // ASCII code for "NUL", i.e. EOF
@@ -29,6 +29,8 @@ func (lexer *Lexer) readChar() {
 
 func (lexer *Lexer) NextToken() token.Token {
 	var tok token.Token
+
+	lexer.skipWhitespace()
 
 	switch lexer.ch {
 	// Operators
@@ -59,7 +61,12 @@ func (lexer *Lexer) NextToken() token.Token {
 	// Identifiers, literals, or illegal
 	default:
 		if isLetter(lexer.ch) {
-			tok.Literal = lexer.readIndentifier()
+			tok.Literal = lexer.readLiteral(isLetter)
+			tok.Type = token.LookupIndentifier(tok.Literal)
+			return tok
+		} else if isDigit(lexer.ch) {
+			tok.Literal = lexer.readLiteral(isDigit)
+			tok.Type = token.INT
 			return tok
 		} else {
 			tok = newToken(token.ILLEGAL, lexer.ch)
@@ -70,21 +77,34 @@ func (lexer *Lexer) NextToken() token.Token {
 	return tok
 }
 
-// Reads in an indentifier and advances the lexer's position
-// until it encounters a non-letter-character
-func (lexer *Lexer) readIndentifier() string {
-	position := lexer.position
-	for isLetter(lexer.ch) {
+func (lexer *Lexer) skipWhitespace() {
+	for lexer.ch == ' ' || lexer.ch == '\t' || lexer.ch == '\n' || lexer.ch == '\r' {
 		lexer.readChar()
 	}
-	return lexer.input[position:lexer.position]
+}
+
+// Takes a litmus function used on the current char and
+// advances the lexer's position until the litmus returns false.
+// E.g. test if a char is a number or if it's a letter
+func (lexer *Lexer) readLiteral(litmusFunc litmus) string {
+	startPostion := lexer.position
+	for litmusFunc(lexer.ch) {
+		lexer.readChar()
+	}
+	return lexer.input[startPostion:lexer.position]
 }
 
 func newToken(tokenType token.TokenType, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
+type litmus func(ch byte) bool
+
 func isLetter(ch byte) bool {
 	// Underscore allows snake case variable naming
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
+func isDigit(ch byte) bool {
+	return '0' <= ch && ch <= '9'
 }
