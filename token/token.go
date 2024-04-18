@@ -1,0 +1,38 @@
+package token
+
+// We defined the TokenType type to be a string. That allows us to use many different values
+// as TokenTypes, which in turn allows us to distinguish between different types of tokens. Using
+// string also has the advantage of being easy to debug without a lot of boilerplate and helper
+// functions: we can just print a string. Of course, using a string might not lead to the same
+// performance as using an int or a byte would, but this will suffice for now.
+type TokenType string
+
+type Token struct {
+	Type    TokenType
+	Literal string
+}
+
+const (
+	ILLEGAL = "ILLEGAL"
+	EOF     = "EOF"
+
+	// Identifiers & literals
+	IDENT = "IDENT" // add, foobar, x, y, ...
+	INT   = "INT"
+
+	// Operators
+	ASSIGN = "="
+	PLUS   = "+"
+
+	// Delimiters
+	COMMA     = ","
+	SEMICOLON = ";"
+	LPAREN    = "("
+	RPAREN    = ")"
+	LBRACE    = "{"
+	RBRACE    = "}"
+
+	// Keywords
+	FUNCTION = "FUNCTION"
+	LET      = "LET"
+)
