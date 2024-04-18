@@ -35,37 +35,45 @@ func (lexer *Lexer) NextToken() token.Token {
 	switch lexer.ch {
 	// Operators
 	case '=':
-		tok = newToken(token.ASSIGN, lexer.ch)
+		if lexer.peekChar() == '=' {
+			tok = lexer.newTwoCharToken(token.EQ)
+		} else {
+			tok = lexer.newToken(token.ASSIGN)
+		}
 	case '+':
-		tok = newToken(token.PLUS, lexer.ch)
+		tok = lexer.newToken(token.PLUS)
 	case '-':
-		tok = newToken(token.MINUS, lexer.ch)
+		tok = lexer.newToken(token.MINUS)
 	case '!':
-		tok = newToken(token.BANG, lexer.ch)
+		if lexer.peekChar() == '=' {
+			tok = lexer.newTwoCharToken(token.NOT_EQ)
+		} else {
+			tok = lexer.newToken(token.BANG)
+		}
 	case '*':
-		tok = newToken(token.ASTERISK, lexer.ch)
+		tok = lexer.newToken(token.ASTERISK)
 	case '/':
-		tok = newToken(token.SLASH, lexer.ch)
+		tok = lexer.newToken(token.SLASH)
 	case '<':
-		tok = newToken(token.LT, lexer.ch)
+		tok = lexer.newToken(token.LT)
 	case '>':
-		tok = newToken(token.GT, lexer.ch)
+		tok = lexer.newToken(token.GT)
 
 	// Delimiters
 	case ',':
-		tok = newToken(token.COMMA, lexer.ch)
+		tok = lexer.newToken(token.COMMA)
 	case ';':
-		tok = newToken(token.SEMICOLON, lexer.ch)
+		tok = lexer.newToken(token.SEMICOLON)
 
 	// Braces
 	case '(':
-		tok = newToken(token.LPAREN, lexer.ch)
+		tok = lexer.newToken(token.LPAREN)
 	case ')':
-		tok = newToken(token.RPAREN, lexer.ch)
+		tok = lexer.newToken(token.RPAREN)
 	case '{':
-		tok = newToken(token.LBRACE, lexer.ch)
+		tok = lexer.newToken(token.LBRACE)
 	case '}':
-		tok = newToken(token.RBRACE, lexer.ch)
+		tok = lexer.newToken(token.RBRACE)
 
 	// NUL or EOF
 	case 0:
@@ -83,7 +91,7 @@ func (lexer *Lexer) NextToken() token.Token {
 			tok.Type = token.INT
 			return tok
 		} else {
-			tok = newToken(token.ILLEGAL, lexer.ch)
+			tok = lexer.newToken(token.ILLEGAL)
 		}
 	}
 
@@ -97,19 +105,15 @@ func (lexer *Lexer) skipWhitespace() {
 	}
 }
 
-// Takes a litmus function used on the current char and
-// advances the lexer's position until the litmus returns false.
-// E.g. test if a char is a number or if it's a letter
-func (lexer *Lexer) readLiteral(litmusFunc litmus) string {
-	startPostion := lexer.position
-	for litmusFunc(lexer.ch) {
-		lexer.readChar()
-	}
-	return lexer.input[startPostion:lexer.position]
+func (lexer *Lexer) newToken(tokenType token.TokenType) token.Token {
+	return token.Token{Type: tokenType, Literal: string(lexer.ch)}
 }
 
-func newToken(tokenType token.TokenType, ch byte) token.Token {
-	return token.Token{Type: tokenType, Literal: string(ch)}
+func (lexer *Lexer) newTwoCharToken(tokenType token.TokenType) token.Token {
+	ch := lexer.ch
+	lexer.readChar()
+	literal := string(ch) + string(lexer.ch)
+	return token.Token{Type: tokenType, Literal: literal}
 }
 
 type litmus func(ch byte) bool
@@ -121,4 +125,24 @@ func isLetter(ch byte) bool {
 
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
+}
+
+// Takes a litmus function used on the current char and
+// advances the lexer's position until the litmus returns false.
+// E.g. test if a char is a number or if it's a letter
+func (lexer *Lexer) readLiteral(litmusFunc litmus) string {
+	startPostion := lexer.position
+	for litmusFunc(lexer.ch) {
+		lexer.readChar()
+	}
+	return lexer.input[startPostion:lexer.position]
+}
+
+// Peek ahead in the input without progressing the position
+func (lexer *Lexer) peekChar() byte {
+	if lexer.readPosition >= len(lexer.input) {
+		return 0
+	} else {
+		return lexer.input[lexer.readPosition]
+	}
 }
