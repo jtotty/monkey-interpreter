@@ -15,18 +15,6 @@ func New(input string) *Lexer {
 	return lexer
 }
 
-// Set the next character and advance the position in the input string
-func (lexer *Lexer) readChar() {
-	if lexer.readPosition >= len(lexer.input) {
-		lexer.ch = 0 // ASCII code for "NUL", i.e. EOF
-	} else {
-		lexer.ch = lexer.input[lexer.readPosition]
-	}
-
-	lexer.position = lexer.readPosition
-	lexer.readPosition += 1
-}
-
 func (lexer *Lexer) NextToken() token.Token {
 	var tok token.Token
 
@@ -97,6 +85,18 @@ func (lexer *Lexer) NextToken() token.Token {
 
 	lexer.readChar()
 	return tok
+}
+
+// Set the next character and advance the position in the input string
+func (lexer *Lexer) readChar() {
+	if lexer.readPosition >= len(lexer.input) {
+		lexer.ch = 0 // ASCII code for "NUL", i.e. EOF
+	} else {
+		lexer.ch = lexer.input[lexer.readPosition]
+	}
+
+	lexer.position = lexer.readPosition
+	lexer.readPosition += 1
 }
 
 func (lexer *Lexer) skipWhitespace() {
