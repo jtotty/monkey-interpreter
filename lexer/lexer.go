@@ -1,6 +1,8 @@
 package lexer
 
-import "github.com/jtotty/monkey-interpreter/token"
+import (
+	"github.com/jtotty/monkey-interpreter/token"
+)
 
 type Lexer struct {
 	input        string
@@ -10,58 +12,58 @@ type Lexer struct {
 }
 
 func New(input string) *Lexer {
-	lexer := &Lexer{input: input}
-	lexer.readChar()
-	return lexer
+	l := &Lexer{input: input}
+	l.readChar()
+	return l
 }
 
-func (lexer *Lexer) NextToken() token.Token {
+func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 
-	lexer.skipWhitespace()
+	l.skipWhitespace()
 
-	switch lexer.ch {
+	switch l.ch {
 	// Operators
 	case '=':
-		if lexer.peekChar() == '=' {
-			tok = lexer.newTwoCharToken(token.EQ)
+		if l.peekChar() == '=' {
+			tok = l.newTwoCharToken(token.EQ)
 		} else {
-			tok = lexer.newToken(token.ASSIGN)
+			tok = l.newToken(token.ASSIGN)
 		}
 	case '+':
-		tok = lexer.newToken(token.PLUS)
+		tok = l.newToken(token.PLUS)
 	case '-':
-		tok = lexer.newToken(token.MINUS)
+		tok = l.newToken(token.MINUS)
 	case '!':
-		if lexer.peekChar() == '=' {
-			tok = lexer.newTwoCharToken(token.NOT_EQ)
+		if l.peekChar() == '=' {
+			tok = l.newTwoCharToken(token.NOT_EQ)
 		} else {
-			tok = lexer.newToken(token.BANG)
+			tok = l.newToken(token.BANG)
 		}
 	case '*':
-		tok = lexer.newToken(token.ASTERISK)
+		tok = l.newToken(token.ASTERISK)
 	case '/':
-		tok = lexer.newToken(token.SLASH)
+		tok = l.newToken(token.SLASH)
 	case '<':
-		tok = lexer.newToken(token.LT)
+		tok = l.newToken(token.LT)
 	case '>':
-		tok = lexer.newToken(token.GT)
+		tok = l.newToken(token.GT)
 
 	// Delimiters
 	case ',':
-		tok = lexer.newToken(token.COMMA)
+		tok = l.newToken(token.COMMA)
 	case ';':
-		tok = lexer.newToken(token.SEMICOLON)
+		tok = l.newToken(token.SEMICOLON)
 
 	// Braces
 	case '(':
-		tok = lexer.newToken(token.LPAREN)
+		tok = l.newToken(token.LPAREN)
 	case ')':
-		tok = lexer.newToken(token.RPAREN)
+		tok = l.newToken(token.RPAREN)
 	case '{':
-		tok = lexer.newToken(token.LBRACE)
+		tok = l.newToken(token.LBRACE)
 	case '}':
-		tok = lexer.newToken(token.RBRACE)
+		tok = l.newToken(token.RBRACE)
 
 	// NUL or EOF
 	case 0:
@@ -70,49 +72,60 @@ func (lexer *Lexer) NextToken() token.Token {
 
 	// Identifiers, literals, or illegal
 	default:
-		if isLetter(lexer.ch) {
-			tok.Literal = lexer.readLiteral(isLetter)
+		if isLetter(l.ch) {
+			tok.Literal = l.readLiteral(isLetter)
 			tok.Type = token.LookupIndentifier(tok.Literal)
 			return tok
-		} else if isDigit(lexer.ch) {
-			tok.Literal = lexer.readLiteral(isDigit)
+		} else if isDigit(l.ch) {
+			tok.Literal = l.readLiteral(isDigit)
 			tok.Type = token.INT
 			return tok
 		} else {
-			tok = lexer.newToken(token.ILLEGAL)
+			tok = l.newToken(token.ILLEGAL)
 		}
 	}
 
-	lexer.readChar()
+	l.readChar()
 	return tok
 }
 
-// Set the next character and advance the position in the input string
-func (lexer *Lexer) readChar() {
-	if lexer.readPosition >= len(lexer.input) {
-		lexer.ch = 0 // ASCII code for "NUL", i.e. EOF
+// First call sets the starting position (0) and readPosition (1).
+// Subsequent calls set the next character and advance the position in the input string.
+func (l *Lexer) readChar() {
+	if l.readPosition >= len(l.input) {
+		l.ch = 0 // ASCII code for "NUL", i.e. EOF
 	} else {
-		lexer.ch = lexer.input[lexer.readPosition]
+		l.ch = l.input[l.readPosition]
 	}
 
-	lexer.position = lexer.readPosition
-	lexer.readPosition += 1
+	l.position = l.readPosition
+	l.readPosition += 1
 }
 
-func (lexer *Lexer) skipWhitespace() {
-	for lexer.ch == ' ' || lexer.ch == '\t' || lexer.ch == '\n' || lexer.ch == '\r' {
-		lexer.readChar()
+// Peek ahead in the input without progressing the position
+func (l *Lexer) peekChar() byte {
+	if l.readPosition >= len(l.input) {
+		return 0
+	} else {
+		return l.input[l.readPosition]
 	}
 }
 
-func (lexer *Lexer) newToken(tokenType token.TokenType) token.Token {
-	return token.Token{Type: tokenType, Literal: string(lexer.ch)}
+// Monkey Programming is whitespace agnostic
+func (l *Lexer) skipWhitespace() {
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+		l.readChar()
+	}
 }
 
-func (lexer *Lexer) newTwoCharToken(tokenType token.TokenType) token.Token {
-	ch := lexer.ch
-	lexer.readChar()
-	literal := string(ch) + string(lexer.ch)
+func (l *Lexer) newToken(tokenType token.TokenType) token.Token {
+	return token.Token{Type: tokenType, Literal: string(l.ch)}
+}
+
+func (l *Lexer) newTwoCharToken(tokenType token.TokenType) token.Token {
+	ch := l.ch
+	l.readChar()
+	literal := string(ch) + string(l.ch)
 	return token.Token{Type: tokenType, Literal: literal}
 }
 
@@ -130,19 +143,10 @@ func isDigit(ch byte) bool {
 // Takes a litmus function used on the current char and
 // advances the lexer's position until the litmus returns false.
 // E.g. test if a char is a number or if it's a letter
-func (lexer *Lexer) readLiteral(litmusFunc litmus) string {
-	startPostion := lexer.position
-	for litmusFunc(lexer.ch) {
-		lexer.readChar()
+func (l *Lexer) readLiteral(litmusFnc litmus) string {
+	startPostion := l.position
+	for litmusFnc(l.ch) {
+		l.readChar()
 	}
-	return lexer.input[startPostion:lexer.position]
-}
-
-// Peek ahead in the input without progressing the position
-func (lexer *Lexer) peekChar() byte {
-	if lexer.readPosition >= len(lexer.input) {
-		return 0
-	} else {
-		return lexer.input[lexer.readPosition]
-	}
+	return l.input[startPostion:l.position]
 }
