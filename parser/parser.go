@@ -9,22 +9,6 @@ import (
 	"github.com/jtotty/monkey-interpreter/token"
 )
 
-type Parser struct {
-	l      *lexer.Lexer
-	errors []string
-
-	currToken token.Token
-	peekToken token.Token
-
-	prefixParseFns map[token.TokenType]prefixParseFn
-	infixParseFns  map[token.TokenType]infixParseFn
-}
-
-type (
-	prefixParseFn func() ast.Expression
-	infixParseFn  func(ast.Expression) ast.Expression
-)
-
 // Define operator precedence
 const (
 	_ int = iota
@@ -46,6 +30,23 @@ var precedences = map[token.TokenType]int{
 	token.MINUS:    SUM,
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
+	token.LPAREN:   CALL,
+}
+
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(ast.Expression) ast.Expression
+)
+
+type Parser struct {
+	l      *lexer.Lexer
+	errors []string
+
+	currToken token.Token
+	peekToken token.Token
+
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -74,15 +75,14 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
 	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.GT, p.parseInfixExpression)
+	p.registerInfix(token.LPAREN, p.parseCallExpression)
 
-	p.initTokens()
+	// Tokens are empty by default so we set
+	// the curr and peek tokens starting values
+	p.nextToken()
+	p.nextToken()
 
 	return p
-}
-
-func (p *Parser) initTokens() {
-	p.currToken = p.l.NextToken()
-	p.peekToken = p.l.NextToken()
 }
 
 func (p *Parser) nextToken() {
@@ -173,20 +173,24 @@ func (p *Parser) parseStatement() ast.Statement {
 }
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
+	fmt.Printf("(1) currToken: %s\n", p.currToken.Literal)
 	stmt := &ast.LetStatement{Token: p.currToken}
 
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
 
+	fmt.Printf("(2) currToken: %s\n", p.currToken.Literal)
 	stmt.Name = &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 
 	if !p.expectPeek(token.ASSIGN) {
 		return nil
 	}
 
-	// TODO: We're skipping the expressions until we encounter a semicolon
-	for !p.currTokenIs(token.SEMICOLON) {
+	fmt.Printf("(3) currToken: %s\n", p.currToken.Literal)
+	stmt.Value = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 
@@ -198,8 +202,9 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 
 	p.nextToken()
 
-	// TODO: We're skipping the expressions until we encounter a semicolon
-	for !p.currTokenIs(token.SEMICOLON) {
+	stmt.ReturnValue = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 
@@ -262,6 +267,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		}
 
 		p.nextToken()
+
 		exp = infixFn(exp)
 	}
 
@@ -409,4 +415,35 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	}
 
 	return identifiers
+}
+
+func (p *Parser) parseCallExpression(fnc ast.Expression) ast.Expression {
+	exp := &ast.CallExpression{Token: p.currToken, Function: fnc}
+	exp.Arguments = p.parseCallArguments()
+	return exp
+}
+
+func (p *Parser) parseCallArguments() []ast.Expression {
+	args := []ast.Expression{}
+
+	// no args
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return args
+	}
+
+	p.nextToken()
+	args = append(args, p.parseExpression(LOWEST))
+
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		args = append(args, p.parseExpression(LOWEST))
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return args
 }
