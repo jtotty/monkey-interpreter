@@ -64,6 +64,9 @@ func (l *Lexer) NextToken() token.Token {
 		tok = l.newToken(token.LBRACE)
 	case '}':
 		tok = l.newToken(token.RBRACE)
+	case '"':
+		tok.Type = token.STRING
+		tok.Literal = l.readString()
 
 	// NUL or EOF
 	case 0:
@@ -149,4 +152,16 @@ func (l *Lexer) readLiteral(litmusFnc litmus) string {
 		l.readChar()
 	}
 	return l.input[startPostion:l.position]
+}
+
+func (l *Lexer) readString() string {
+	position := l.position + 1
+	for {
+		l.readChar()
+		if l.ch == '"' || l.ch == 0 {
+			break
+		}
+	}
+
+	return l.input[position:l.position]
 }
