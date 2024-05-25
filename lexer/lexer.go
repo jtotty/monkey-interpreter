@@ -54,6 +54,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = l.newToken(token.COMMA)
 	case ';':
 		tok = l.newToken(token.SEMICOLON)
+	case ':':
+		tok = l.newToken(token.COLON)
 
 	// Braces
 	case '(':
@@ -64,17 +66,17 @@ func (l *Lexer) NextToken() token.Token {
 		tok = l.newToken(token.LBRACE)
 	case '}':
 		tok = l.newToken(token.RBRACE)
-
-	case '"':
-		tok.Type = token.STRING
-		tok.Literal = l.readString()
-
 	case '[':
 		tok = l.newToken(token.LBRACKET)
 	case ']':
 		tok = l.newToken(token.RBRACKET)
 
-	// NUL or EOF
+	// Strings
+	case '"':
+		tok.Type = token.STRING
+		tok.Literal = l.readString()
+
+	// NULL or EOF
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
