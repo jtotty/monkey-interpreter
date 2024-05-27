@@ -78,7 +78,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.CallExpression:
 		if node.Function.TokenLiteral() == "quote" {
-			return quote(node.Arguments[0])
+			return quote(node.Arguments[0], env)
 		}
 
 		function := Eval(node.Function, env)
@@ -410,9 +410,4 @@ func evalHashIndexExpression(hash, index object.Object) object.Object {
 	}
 
 	return pair.Value
-}
-
-// Macros
-func quote(node ast.Node) object.Object {
-	return &object.Quote{Node: node}
 }
